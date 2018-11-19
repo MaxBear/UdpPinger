@@ -7,6 +7,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
+#include <iostream>
 #include <fstream>
 #include <thread>
 #include <gflags/gflags.h>
@@ -17,6 +18,8 @@
 #include <arpa/inet.h>
 
 #include "UdpPinger.h"
+
+#include <glog/logging.h>
 
 using namespace std;
 using namespace folly;
@@ -119,7 +122,7 @@ int main(int argc, char *argv[]) {
   config.pinger_target_port = FLAGS_target_port;
   config.pinger_cooldown_time = FLAGS_cooldown_time;
   config.pinger_sender_threads = FLAGS_sender_threads;
-  LOG(INFO) << config.pinger_sender_threads;
+  LOG(INFO) << "config.pinger_sender_threads=" << config.pinger_sender_threads;
   config.pinger_receiver_threads = FLAGS_receiver_threads;
   config.pinger_rate = FLAGS_sender_rate;
   config.socket_buffer_size = FLAGS_socket_buffer_size;
@@ -144,12 +147,15 @@ int main(int argc, char *argv[]) {
     if (FLAGS_srcIpv6.length()) {
       srcIpv6 = folly::IPAddress(FLAGS_srcIpv6);
     } else {
-      srcIpv6 = folly::IPAddress(getAddressFromInterface(AF_INET6));
+		// prevent crash on non-exist ipv6 address
+		if (getAddressFromInterface(AF_INET6).length()) {
+      	srcIpv6 = folly::IPAddress(getAddressFromInterface(AF_INET6));
+		}
     }
   } catch (folly::IPAddressFormatException const &e) {
+	 DLOG(INFO) << e;
     srcIpv6 = folly::IPAddress("::1");
-    LOG(WARNING) << "Oh no! We are using loopback for IPv6";
-  }
+    LOG(WARNING) << "Oh no! We are using loopback for IPv6"; }
 
   // Build TestPland from our targets file
   LOG(INFO) << "Reading targets from " << FLAGS_target_file;
