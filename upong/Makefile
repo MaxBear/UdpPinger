@@ -1,8 +1,8 @@
-CPPFLAGS=-std=c++11
+CPPFLAGS=-std=c++14
 THRIFT_GEN+= -Igen-cpp
 CPP=g++
 LDFLAGS=-g $(THRIFT_GEN)
-LDLIBS=-lfolly -lgflags -lpthread -lglog
+LDLIBS=-lfolly -lgflags -lpthread -lglog -ldouble-conversion -liberty
 THRIFT=thrift
 
 all: upong
