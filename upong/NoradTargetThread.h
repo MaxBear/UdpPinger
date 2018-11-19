@@ -14,6 +14,7 @@
 #include <string>
 
 #include <folly/MPMCQueue.h>
+#include <folly/system/ThreadName.h>
 
 #include "../common/Probe.h"
 
