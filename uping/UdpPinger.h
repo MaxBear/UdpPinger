@@ -16,9 +16,12 @@
 #include <folly/io/async/NotificationQueue.h>
 #include <folly/stats/Histogram.h>
 
-#include "AsyncUDPSocket.h"
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncUDPSocket.h>
 #include "../common/Probe.h"
 #include "gen-cpp/Pinger_types.h"
+
+using folly::AsyncUDPSocket;
 
 namespace facebook {
 namespace netnorad {
@@ -205,8 +208,10 @@ public:
   //
   // AsyncUDPSocket::ReadCallback methods
   //
-  void onMessageAvailable(size_t len) noexcept override;
-  void getMessageHeader(struct msghdr **msg) noexcept override;
+  void getReadBuffer(void** buf, size_t* len) noexcept override;
+  void onDataAvailable(const folly::SocketAddress& client, size_t len, bool truncated) noexcept override;
+
+  void getMessageHeader(struct msghdr **msg) noexcept;
   void onReadClosed() noexcept override {}
   void onReadError(const folly::AsyncSocketException &ex) noexcept override {
     LOG(ERROR) << "UdpReadCallback error: " << folly::exceptionStr(ex);
