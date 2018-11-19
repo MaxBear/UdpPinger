@@ -1,17 +1,14 @@
-CPPFLAGS=-std=c++11
+CPPFLAGS=-std=c++14 
 THRIFT_GEN+= -Igen-cpp
 CPP=g++
 LDFLAGS=-g $(THRIFT_GEN)
-LDLIBS=-lfolly -lgflags -lpthread -lthrift -ldouble-conversion -lglog
+LDLIBS=-lfolly -lgflags -lpthread -lthrift -ldouble-conversion -lglog -ldl -liberty -levent
 THRIFT=thrift
 
 all: uping
 
-uping: AsyncUDPSocket UdpPinger Pinger_types.o Pinger_constants.o
-	$(CPP) $(LDFLAGS) $(CPPFLAGS) Pinger_constants.o Pinger_types.o UdpPinger.o AsyncUDPSocket.o Main.cpp -o uping $(LDLIBS)
-
-AsyncUDPSocket: gen-cpp
-	$(CPP) $(LDFLAGS) $(CPPFLAGS) -c  AsyncUDPSocket.cpp
+uping: UdpPinger Pinger_types.o Pinger_constants.o
+	$(CPP) $(LDFLAGS) $(CPPFLAGS) Pinger_constants.o Pinger_types.o UdpPinger.o Main.cpp -o uping $(LDLIBS)
 
 UdpPinger: gen-cpp
 	$(CPP) $(LDFLAGS) $(CPPFLAGS) -c  UdpPinger.cpp
