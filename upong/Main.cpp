@@ -10,7 +10,7 @@
 #include <thread>
 #include <gflags/gflags.h>
 #include <chrono>
-#include <folly/ThreadName.h>
+#include <folly/system/ThreadName.h>
 #include <thrift/concurrency/PosixThreadFactory.h>
 
 #include "NoradTargetThread.h"
