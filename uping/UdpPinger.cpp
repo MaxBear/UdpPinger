@@ -19,12 +19,15 @@
 #include <thread>
 #include <future>
 
+#include <folly/String.h>
+#include <folly/Format.h>
 #include <folly/gen/Base.h>
 #include <folly/gen/Core.h>
 #include <folly/stats/Histogram-defs.h>
-#include <folly/ThreadName.h>
+#include <folly/system/ThreadName.h>
+#include <folly/io/async/AsyncUDPSocket.h>
 
-#include <folly/Logging.h>
+#include <folly/GLog.h>
 
 using namespace std;
 using namespace folly;
@@ -39,7 +42,7 @@ DEFINE_int32(bucket_size, 5e3, "Bucket size for histograms");
 
 namespace {
 
-using facebook::netnorad::AsyncUDPSocket;
+using folly::AsyncUDPSocket;
 
 const string kUdp = "udp";
 const string kClusterPodDelimiter = "||";
@@ -178,6 +181,7 @@ int createRawSocket(bool isV4, int qos, int bufferSize) {
     addr.sin_port = 0;
 
     sock = ::socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+    DLOG(INFO) << "** createRawSocket (ipv4) sock: " << sock;
     if (sock < 0) {
       LOG(ERROR) << "Error creating raw v4 socket '" << errnoStr(errno) << "'";
     }
@@ -199,6 +203,7 @@ int createRawSocket(bool isV4, int qos, int bufferSize) {
     addr.sin6_port = 0;
 
     sock = ::socket(AF_INET6, SOCK_RAW, IPPROTO_UDP);
+    DLOG(INFO) << "** createRawSocket (ipv6) sock: " << sock;
     if (sock < 0) {
       LOG(ERROR) << "Error creating raw v6 socket '" << errnoStr(errno) << "'";
     }
@@ -585,12 +590,13 @@ void UdpReceiver::getMessageHeader(struct msghdr **msg) noexcept {
   *msg = &msg_;
 }
 
-void UdpReceiver::onMessageAvailable(size_t len) noexcept {
-  uint32_t now = getTimestamp<chrono::microseconds>();
+void UdpReceiver::getReadBuffer(void** buf, size_t* len) noexcept {
+	*buf = readBuf_;
+   *len = sizeof(readBuf_);
+}
 
-  folly::SocketAddress addr;
-  addr.setFromSockaddr(reinterpret_cast<sockaddr *>(&addrStorage_),
-                       sizeof(addrStorage_));
+void UdpReceiver::onDataAvailable(const folly::SocketAddress& addr, size_t len, bool truncated) noexcept {
+  uint32_t now = getTimestamp<chrono::microseconds>();
 
   if (msg_.msg_flags & MSG_TRUNC) {
     LOG(ERROR) << "UdpReadCallback: Dropping truncated data packet from "
@@ -700,8 +706,12 @@ UdpSender::UdpSender(
 void UdpSender::run() {
   socketV4_ = createRawSocket(true /* is v4 */, qos_,
                               config_.socket_buffer_size /* buff size */);
-  socketV6_ = createRawSocket(false /* is v4 */, qos_,
+  if (srcV6_.empty()) {
+	  DLOG(INFO) << "** " << "ipv6 address not available, will not create ipv6 raw socket";
+  } else {
+     socketV6_ = createRawSocket(false /* is v4 */, qos_,
                               config_.socket_buffer_size /* buff size */);
+  }
 
   // this guy will drain our input queue
   prepareConsumer();
@@ -753,6 +763,7 @@ void UdpSender::prepareConsumer() {
   sendingConsumer_ = NotificationQueue<UdpTestPlan>::Consumer::make([this](
       UdpTestPlan && testPlan) noexcept {
 
+    DLOG(INFO) << "** testPlan.numPackets " << testPlan.numPackets;
     // enqueue test-plans until we receive the signal to start probing
     if (testPlan.numPackets != 0) {
       testPlans_.push_back(std::move(testPlan));
@@ -797,7 +808,7 @@ void UdpSender::pingAllTargets() {
 
   // some people bind all UDP ports in our range... weirdos
   bool v4Enabled = !srcV4_.isLoopback() && srcPortsV4.size();
-  bool v6Enabled = !srcV6_.isLoopback() && srcPortsV6.size();
+  bool v6Enabled = !srcV6_.empty() && !srcV6_.isLoopback() && srcPortsV6.size();
 
   while (true) {
     bool done = true;
@@ -982,6 +993,7 @@ UdpTestResults UdpPinger::run(const vector<UdpTestPlan> &testPlans, int qos) {
   vector<shared_ptr<AsyncUDPSocket>> _socketsV4, _socketsV6;
   set<int> missingPortsV4, missingPortsV6;
 
+  DLOG(INFO) << "** create udp sockets: base_src_port " << config_.base_src_port << ", src_port_count " << config_.src_port_count;
   tie(_socketsV4, missingPortsV4) = createUdpSockets(
       &_evb, true /* is v4 */, config_.base_src_port, config_.src_port_count,
       config_.socket_buffer_size /* buff size */, nullptr /* cob */);
@@ -995,17 +1007,21 @@ UdpTestResults UdpPinger::run(const vector<UdpTestPlan> &testPlans, int qos) {
                                           as<vector>()));
   }
 
-  tie(_socketsV6, missingPortsV6) = createUdpSockets(
-      &_evb, false /* is v4 */, config_.base_src_port, config_.src_port_count,
-      config_.socket_buffer_size /* buff size */, nullptr /* cob */);
-
-  if (missingPortsV6.size()) {
-    LOG(WARNING) << "IPv6: could not bind UDP ports "
-                 << sformat(join(",", from(missingPortsV6) |
-                                          mapped([](int port) {
-                                            return to<string>(port);
-                                          }) |
-                                          as<vector>()));
+  if (srcV6_.empty()) {
+	  DLOG(INFO) << "** " << "ipv6 address not available, will not create ipv6 udp sockets";
+  } else {
+     tie(_socketsV6, missingPortsV6) = createUdpSockets(
+         &_evb, false /* is v4 */, config_.base_src_port, config_.src_port_count,
+         config_.socket_buffer_size /* buff size */, nullptr /* cob */);
+   
+     if (missingPortsV6.size()) {
+       LOG(WARNING) << "IPv6: could not bind UDP ports "
+                    << sformat(join(",", from(missingPortsV6) |
+                                             mapped([](int port) {
+                                               return to<string>(port);
+                                             }) |
+                                             as<vector>()));
+     }
   }
 
   //
