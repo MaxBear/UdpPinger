@@ -447,6 +447,8 @@ void UdpReceiver::summarizeResults(int qos) {
     const auto &histogram = iter.second;
     result->metrics.numRecv = histogram.computeTotalCount();
     // The result metrics is in ms.
+    result->metrics.rttP10 =
+        (double)histogram.getPercentileEstimate(0.1) / 1000;
     result->metrics.rttP50 =
         (double)histogram.getPercentileEstimate(0.5) / 1000;
     result->metrics.rttP90 =
@@ -481,6 +483,8 @@ void UdpReceiver::summarizeResults(int qos) {
     const auto &histogram = iter.second;
     result->metrics.numRecv = histogram.computeTotalCount();
     // The result metrics is in ms.
+    result->metrics.rttP10 =
+        (double)histogram.getPercentileEstimate(0.1) / 1000;
     result->metrics.rttP50 =
         (double)histogram.getPercentileEstimate(0.5) / 1000;
     result->metrics.rttP90 =
@@ -506,6 +510,8 @@ void UdpReceiver::summarizeResults(int qos) {
     const auto &histogram = iter.second;
     result->metrics.numRecv = histogram.computeTotalCount();
     // The result metrics is in ms.
+    result->metrics.rttP10 =
+        (double)histogram.getPercentileEstimate(0.1) / 1000;
     result->metrics.rttP50 =
         (double)histogram.getPercentileEstimate(0.5) / 1000;
     result->metrics.rttP90 =
@@ -531,6 +537,8 @@ void UdpReceiver::summarizeResults(int qos) {
     const auto &histogram = iter.second;
     result->metrics.numRecv = histogram.computeTotalCount();
     // The result metrics is in ms.
+    result->metrics.rttP10 =
+        (double)histogram.getPercentileEstimate(0.1) / 1000;
     result->metrics.rttP50 =
         (double)histogram.getPercentileEstimate(0.5) / 1000;
     result->metrics.rttP90 =
