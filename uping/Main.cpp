@@ -183,7 +183,10 @@ int main(int argc, char *argv[]) {
       if (FLAGS_output_csv){
         cout << hostResult->metadata.dst.ip << ","
           << hostResult->metrics.rttP50 << ","
-          << hostResult->metrics.lossRatio << endl;
+          << hostResult->metrics.lossRatio << ","
+          << hostResult->metrics.rttP10 << ","
+          << hostResult->metrics.rttP90 << ","
+          << hostResult->metrics.avg << endl;
       }
     }
     ++totalHosts;
