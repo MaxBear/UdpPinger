@@ -78,6 +78,7 @@ struct Metrics {
   4 : double rttP90;
   5 : double rttP50;
   6 : double lossRatio;
+  7 : double rttP10;
 }
 
 struct TestResult {
