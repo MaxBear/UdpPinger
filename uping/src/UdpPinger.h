@@ -18,7 +18,7 @@
 
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncUDPSocket.h>
-#include "../common/Probe.h"
+#include "common/Probe.h"
 #include "gen-cpp/Pinger_types.h"
 
 using folly::AsyncUDPSocket;

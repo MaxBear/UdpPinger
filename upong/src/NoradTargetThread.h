@@ -16,7 +16,7 @@
 #include <folly/MPMCQueue.h>
 #include <folly/system/ThreadName.h>
 
-#include "../common/Probe.h"
+#include "common/Probe.h"
 
 namespace facebook {
 namespace netnorad {
