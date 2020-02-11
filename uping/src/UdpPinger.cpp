@@ -292,14 +292,14 @@ createUdpSockets(EventBase *evb, bool isV4, int basePort, int portCount,
 
     // enable timestamping for this socket
     int enabled = 1;
-    if (::setsockopt(socket->getFD(), SOL_SOCKET, SO_TIMESTAMPNS, &enabled,
+    if (::setsockopt(socket->getNetworkSocket(), SOL_SOCKET, SO_TIMESTAMPNS, &enabled,
                      sizeof(enabled)) < 0) {
       LOG(ERROR) << "UdpWorker: setsockopt SO_TIMESTAMPNS failed '"
                  << errnoStr(errno) << "'";
     }
 
     if (bufferSize) {
-      if (::setsockopt(socket->getFD(), SOL_SOCKET, SO_RCVBUF, &bufferSize,
+      if (::setsockopt(socket->getNetworkSocket(), SOL_SOCKET, SO_RCVBUF, &bufferSize,
                        sizeof(bufferSize)) == -1) {
         LOG(ERROR) << "UdpWorker: setsockopt SO_RCVBUF failed '"
                    << errnoStr(errno) << "'";
@@ -308,7 +308,7 @@ createUdpSockets(EventBase *evb, bool isV4, int basePort, int portCount,
       int optval;
       socklen_t optlen;
       optlen = sizeof(optval);
-      ::getsockopt(socket->getFD(), SOL_SOCKET, SO_RCVBUF, &optval, &optlen);
+      ::getsockopt(socket->getNetworkSocket(), SOL_SOCKET, SO_RCVBUF, &optval, &optlen);
 
       if (2 * bufferSize != optval) {
         LOG(WARNING) << "Udp socket: getsockopt SO_RCVBUF returned '" << optval
