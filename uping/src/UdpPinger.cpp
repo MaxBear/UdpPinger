@@ -23,7 +23,7 @@
 #include <folly/Format.h>
 #include <folly/gen/Base.h>
 #include <folly/gen/Core.h>
-#include <folly/stats/Histogram-defs.h>
+#include <folly/stats/Histogram-inl.h>
 #include <folly/system/ThreadName.h>
 #include <folly/io/async/AsyncUDPSocket.h>
 
